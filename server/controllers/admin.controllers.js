@@ -3,6 +3,8 @@ import { User } from "../models/user.models.js";
 import { Chat } from "../models/chat.model.js";
 import { ErrorHandler } from "../utils/utility.js";
 import { Message } from "../models/message.model.js";
+import jwt from "jsonwebtoken"
+import { cookieOption } from "../utils/features.js";
 
 export const allUsers = TryCatch(async (req, res, next) => {
   const users = await User.find({});
@@ -79,7 +81,7 @@ const messages=await Message.find({}).populate("sender","name avatar").populate(
 console.log("messagess",messages);
 
 
-const transformedMessages=messages.map((content,attachments,_id,sender,createdAt,chat)=>({
+const transformedMessages=messages.map(({content,attachments,_id,sender,createdAt,chat})=>({
 
    _id,attachments,content,createdAt,
    chat:chat._id,
@@ -113,16 +115,101 @@ export const getDashboard=TryCatch(async(req,res)=>{
   ])
 
 
+  const today=new Date()
+
+  const last7D=new Date()
+last7D.setDate(last7D.getDate()-7)
+
+ const last7Daysmessages=await Message.find({
+  createdAt:{$gte:last7D,
+    $lte:today
+  }
+ }).select("createdAt")
+
+ const messages=new Array(7).fill(0)
+  const daysInMilisecond=1000*60*60*24
+
+
+ last7Daysmessages.forEach(message=>{
+
+  const indexApprox=(today.getTime()-message.createdAt.getTime())/
+  daysInMilisecond
+
+  const index=Math.floor(indexApprox)
+
+  messages[6-index]++
+
+
+
+ })
+
+
   const stats={
-    groupsCount,totalChatsCounts,messagesCount,usersCount
+    groupsCount,totalChatsCounts,messagesCount,usersCount,messaheChart:messages
   }
 
 
   return res.status(200).json({
     success:true,
-    stats
+    stats,
+    
   })
 
 
 
 })
+
+
+
+export const adminLogin=TryCatch((req,res,next)=>{
+
+
+  const{secretKey}=req.body
+
+  const adminSecretKey=process.env.ADMIN_SECRET_KEY||"POKEMON"
+
+  const isMatch=secretKey===adminSecretKey
+  
+  if(!isMatch) return next(new ErrorHandler("Invalid admin key",401))
+
+
+  const token=jwt.sign(secretKey,process.env.JWT_SECRET)
+
+   return res.status(200).cookie("chattue-admin-token",token,{...cookieOption,maxAge:1000*60*15}).json({
+    success:true,
+    message:"Authenticated successfully admin"
+   })
+
+
+})
+
+
+export const adminLogout=TryCatch((req,res,next)=>{
+
+
+
+   return res.status(200).cookie("chattue-admin-token","",{...cookieOption,maxAge:0}).json({
+    success:true,
+    message:"Logout successfully"
+   })
+
+
+})
+
+
+export const getAdminData=TryCatch((req,res,next)=>{
+
+  return res.status(200).json({
+    admin:true
+  })
+ 
+
+
+})
+
+
+
+
+
+
+

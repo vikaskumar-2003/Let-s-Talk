@@ -1,14 +1,22 @@
 import express from "express"
-import { allChats, allMessages, allUsers, getDashboard } from "../controllers/admin.controllers.js"
+import { adminLogin, adminLogout, allChats, allMessages, allUsers, getAdminData, getDashboard } from "../controllers/admin.controllers.js"
+import { adminLoginValidator, validateHandler } from "../lib/validator.js"
+import { isAdmin } from "../middlewares/auth.js"
 
 const adminRoutes=express.Router()
 
 
-// adminRoutes.get("/")
 
-// adminRoutes.post("/verfiy")
 
-// adminRoutes.get("/logout")
+ adminRoutes.post("/verify",adminLoginValidator(),validateHandler,adminLogin)
+
+adminRoutes.get("/logout",adminLogout)
+
+//only admin can access this routes
+
+adminRoutes.use(isAdmin)
+
+adminRoutes.get("/",getAdminData)
 
 adminRoutes.get("/users",allUsers)
 

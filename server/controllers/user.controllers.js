@@ -20,6 +20,10 @@ export const newUser = TryCatch(async (req, res,next) => {
       });
     }
 
+    if(!req.file){
+      return next(new ErrorHandler("pease upload avatar",400 ))
+    }
+
     const avatar = {
       public_id: "sdf",
       url: "tututut",
